@@ -58,3 +58,8 @@ And finally, I pushed HELM chart of Kibana also into my repository, where ArgoCD
 
 ![image](https://i2.paste.pics/6e20083ef8f6dd585da8e5c0869e10e7.png)
 
+--- 
+
+Here is how at the end ArgoCD looks with all components deployed and working and synchronized.
+Please ignore external secrets deployed as I tried it to use just for testing purposes.
+![image](https://i2.paste.pics/f9b4a2355250bcdd4cb2ffb2fb9f03bf.png)
