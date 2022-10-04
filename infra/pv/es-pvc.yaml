@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app: es
+    env: stg
+  name: elasticsearch-logging-master-elasticsearch-logging-master-0
+  namespace: logging
+spec:
+  accessModes:
+    - ReadWriteOnce
+  dataSource: null
+  resources:
+    requests:
+      storage: 7Gi
+  storageClassName: es-0
+  volumeMode: Filesystem
+  volumeName: es-pv-0
+status:
+  accessModes:
+    - ReadWriteOnce
+  capacity:
+    storage: 7Gi

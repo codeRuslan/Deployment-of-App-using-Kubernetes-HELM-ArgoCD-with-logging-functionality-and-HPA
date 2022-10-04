@@ -1,0 +1,73 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: elasticsearch-logging
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  source:
+    repoURL: https://helm.elastic.co
+    chart: elasticsearch
+    targetRevision: 7.16.3
+    helm:
+      values: |
+        clusterName: "elasticsearch-logging"
+        nodeGroup: "master"
+        roles:
+          master: "true"
+          ingest: "true"
+          data: "true"
+        replicas: 1
+        minimumMasterNodes: 1
+        maxUnavailable: {}
+        esConfig:
+          elasticsearch.yml: |
+            indices.lifecycle.history_index_enabled: false
+        image: "docker.elastic.co/elasticsearch/elasticsearch"
+        imageTag: "7.16.3"
+        imagePullPolicy: "IfNotPresent"
+        esJavaOpts: "-Xmx1g -Xms1g"
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "3Gi"
+        networkHost: "0.0.0.0"
+        volumeClaimTemplate:
+          accessModes: [ "ReadWriteOnce" ]
+          resources:
+            requests:
+              storage: 20Gi
+        protocol: http
+        httpPort: 9200
+        transportPort: 9300
+        terminationGracePeriod: 120
+        sysctlVmMaxMapCount: 262144
+        sysctlInitContainer:
+          enabled: true
+        lifecycle:
+           preStop:
+             exec:
+               command: ["/bin/sh", "-c", "echo Hello from the postStart handler > /usr/share/message"]
+           postStart:
+             exec:
+               command:
+                 - bash
+                 - -c
+                 - |
+                   #!/bin/bash
+                   # Add a template to adjust number of shards/replicas
+                   TEMPLATE_NAME=filebeat
+                   INDEX_PATTERN="filebeat-*"
+                   SHARD_COUNT=5
+                   REPLICA_COUNT=0
+                   ES_URL=http://localhost:9200
+                   while [[ "$(curl -s -o /dev/null -w '%{http_code}\n' $ES_URL)" != "200" ]]; do sleep 1; done
+                   curl -XPUT "$ES_URL/_template/$TEMPLATE_NAME" -H 'Content-Type: application/json' -d'{"index_patterns":['\""$INDEX_PATTERN"\"'],"settings":{"number_of_shards":'$SHARD_COUNT',"number_of_replicas":'$REPLICA_COUNT'}}'
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: logging

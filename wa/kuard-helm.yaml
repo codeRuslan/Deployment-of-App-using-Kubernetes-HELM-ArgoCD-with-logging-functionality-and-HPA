@@ -1,0 +1,34 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kuard
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/codeRuslan/argocd.git
+    targetRevision: HEAD
+    path: helm-charts/kuard
+    helm:
+      values: |
+        fullnameOverride: "kuard-wa"
+        image:
+          tag: "1"
+        replicaCount: 3
+        env:
+          WEBACAD: "staging"
+          GROUP: "2807"
+        ingress:
+          enabled: true
+          annotations: {}
+          hosts:
+            - host: kuard.devopsua.tk
+              paths:
+                - path: /
+                  pathType: ImplementationSpecific
+          tls: []
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: demo

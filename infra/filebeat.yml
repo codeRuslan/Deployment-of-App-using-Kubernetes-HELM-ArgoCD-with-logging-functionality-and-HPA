@@ -1,0 +1,55 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: filebeat
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://helm.elastic.co
+    chart: filebeat
+    targetRevision: 7.16.3
+    helm:
+      values: |
+        filebeatConfig:
+          filebeat.yml: |
+            logging.level: info
+            filebeat.config.modules:
+              enabled: true
+              path: "./modules.d/*.yml"
+            filebeat.modules:
+              - module: nginx
+            filebeat.overwrite_pipelines: true
+            setup.kibana.host: "http://kibana-logging-kibana:5601"
+            setup.dashboards.enabled: true
+            setup.template.enabled: true
+            setup.template.name: "filebeat"
+            setup.template.pattern: "filebeat-*"
+            setup.template.overwrite: true
+            # Create Lifecycle policies
+            setup.ilm.enabled: true
+            setup.ilm.pattern: "{now/d}-000001"
+            filebeat.inputs:
+              - type: container
+                paths:
+                  - /var/log/containers/*.log
+                processors:
+                  - add_kubernetes_metadata:
+                      host: ${NODE_NAME}
+                      matchers:
+                        - logs_path:
+                            logs_path: "/var/log/containers/"
+            output.elasticsearch:
+              host: '${NODE_NAME}'
+              hosts: '${ELASTICSEARCH_HOSTS:elasticsearch-logging-master:9200}'
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: logging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

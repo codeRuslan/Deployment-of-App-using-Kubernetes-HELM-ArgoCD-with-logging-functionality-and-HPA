@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kibana-logging
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  project: default
+  source:
+    repoURL: https://helm.elastic.co
+    chart: kibana
+    targetRevision: 7.16.3
+    helm:
+      values: |
+        elasticsearchHosts: "http://elasticsearch-logging-master:9200"
+        ingress:
+          enabled: true
+          className: ""
+          annotations: {}
+          hosts:
+            - kibana.devopsua.tk
+          path: /
+          tls: []
+        resources:
+           requests:
+             cpu: 10m
+             memory: 128Mi
+           limits:
+             memory: 1024Mi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: logging
